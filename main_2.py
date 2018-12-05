@@ -26,9 +26,9 @@ parser.add_argument('--model', type=str, default='LSTM',
                     help='type of recurrent net (LSTM, QRNN, GRU)')
 parser.add_argument('--emsize', type=int, default=400,
                     help='size of word embeddings')
-parser.add_argument('--nhid', type=int, default=1150,
+parser.add_argument('--nhid', type=int, default=600,
                     help='number of hidden units per layer')
-parser.add_argument('--nlayers', type=int, default=3,
+parser.add_argument('--nlayers', type=int, default=4,
                     help='number of layers')
 parser.add_argument('--lr', type=float, default=30,
                     help='initial learning rate')
@@ -36,9 +36,9 @@ parser.add_argument('--clip', type=float, default=0.25,
                     help='gradient clipping')
 parser.add_argument('--epochs', type=int, default=8000,
                     help='upper epoch limit')
-parser.add_argument('--batch_size', type=int, default=80, metavar='N',
+parser.add_argument('--batch_size', type=int, default=32, metavar='N',
                     help='batch size')
-parser.add_argument('--bptt', type=int, default=70,
+parser.add_argument('--bptt', type=int, default=200,
                     help='sequence length')
 parser.add_argument('--dropout', type=float, default=0.4,
                     help='dropout applied to layers (0 = no dropout)')
@@ -103,7 +103,7 @@ def model_load(fn):
 
 print("loading data")
 from data_load import data_loader
-dl = data_loader()
+dl = data_loader(bs=args.batch_size, bptt=args.bptt)
 eval_batch_size = 10
 test_batch_size = 1
 train_data = dl.trn_dl
@@ -118,7 +118,6 @@ from splitcross import SplitCrossEntropyLoss
 criterion = None
 
 ntokens = dl.nt
-embed()
 model = model.RNNModel(args.model, ntokens, args.emsize, args.nhid, args.nlayers, args.dropout, args.dropouth, args.dropouti, args.dropoute, args.wdrop, args.tied)
 ###
 if args.resume:
@@ -158,19 +157,20 @@ print('Model total parameters:', total_params)
 # Training code
 ###############################################################################
 
-def evaluate(data_source, batch_size=10):
+
+# TODO:
+def evaluate(batch_size=args.batch_size):
     # Turn on evaluation mode which disables dropout.
     model.eval()
     if args.model == 'QRNN': model.reset()
     total_loss = 0
-    ntokens = len(corpus.dictionary)
     hidden = model.init_hidden(batch_size)
-    for i in range(0, data_source.size(0) - 1, args.bptt):
-        data, targets = get_batch(data_source, i, args, evaluation=True)
+    for i in range(0, len(val_data) - 1, args.bptt):
+        data, targets = val_data.get_batch(i, args.bptt)
         output, hidden = model(data, hidden)
         total_loss += len(data) * criterion(model.decoder.weight, model.decoder.bias, output, targets).data
         hidden = repackage_hidden(hidden)
-    return total_loss.item() / len(data_source)
+    return total_loss.item() / len(val_data)
 
 
 def train():
@@ -178,20 +178,16 @@ def train():
     if args.model == 'QRNN': model.reset()
     total_loss = 0
     start_time = time.time()
-    ntokens = len(corpus.dictionary)
+    ntokens = len(dl.nt)
     hidden = model.init_hidden(args.batch_size)
     batch, i = 0, 0
     while i < train_data.size(0) - 1 - 1:
-        bptt = args.bptt if np.random.random() < 0.95 else args.bptt / 2.
-        # Prevent excessively small or negative sequence lengths
-        seq_len = max(5, int(np.random.normal(bptt, 5)))
-        # There's a very small chance that it could select a very long sequence length resulting in OOM
-        # seq_len = min(seq_len, args.bptt + 10)
+        seq_len = args.bptt
 
         lr2 = optimizer.param_groups[0]['lr']
         optimizer.param_groups[0]['lr'] = lr2 * seq_len / args.bptt
         model.train()
-        data, targets = get_batch(train_data, i, args, seq_len=seq_len)
+        data, targets = train_data.get_batch(i, seq_len=seq_len)
 
         # Starting each batch, we detach the hidden state from how it was previously produced.
         # If we didn't, the model would try backpropagating all the way to start of the dataset.
@@ -265,7 +261,7 @@ try:
                 prm.data = tmp[prm].clone()
 
         else:
-            val_loss = evaluate(val_data, eval_batch_size)
+            val_loss = evaluate()
             print('-' * 89)
             print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
                 'valid ppl {:8.2f} | valid bpc {:8.3f}'.format(
@@ -297,7 +293,7 @@ except KeyboardInterrupt:
 model_load(args.save)
 
 # Run on test data.
-test_loss = evaluate(test_data, test_batch_size)
+test_loss = evaluate()
 print('=' * 89)
 print('| End of training | test loss {:5.2f} | test ppl {:8.2f} | test bpc {:8.3f}'.format(
     test_loss, math.exp(test_loss), test_loss / math.log(2)))
