@@ -156,16 +156,6 @@ class LanguageData:
 def create_paths():
     PATHS={}
     PATHS['data']=Path('./data/')
-    PATHS['critic_data']=Path('./critic_data/')
-    PATHS['composer_data']=Path('./composer_data/')
-    PATHS['notewise_example_data']=PATHS['data']/'notewise_example_data'
-    PATHS['chordwise_example_data']=PATHS['data']/'chordwise_example_data'
-    PATHS['chamber_example_data']=PATHS['data']/'chamber_example_data'
-    PATHS['models']=Path('./models/')
-    PATHS['generator']=PATHS['models']/'generator'
-    PATHS['critic']=PATHS['models']/'critic'
-    PATHS['composer']=PATHS['models']/'composer'
-    PATHS['output']=PATHS['data']/'output'
 
     for k in PATHS.keys():
         PATHS[k].mkdir(parents=True, exist_ok=True)

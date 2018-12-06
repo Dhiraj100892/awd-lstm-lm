@@ -178,10 +178,9 @@ def train():
     if args.model == 'QRNN': model.reset()
     total_loss = 0
     start_time = time.time()
-    ntokens = len(dl.nt)
     hidden = model.init_hidden(args.batch_size)
     batch, i = 0, 0
-    while i < train_data.size(0) - 1 - 1:
+    while i < len(train_data) - 1:
         seq_len = args.bptt
 
         lr2 = optimizer.param_groups[0]['lr']
@@ -245,7 +244,7 @@ try:
                 tmp[prm] = prm.data.clone()
                 prm.data = optimizer.state[prm]['ax'].clone()
 
-            val_loss2 = evaluate(val_data)
+            val_loss2 = evaluate()
             print('-' * 89)
             print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
                 'valid ppl {:8.2f} | valid bpc {:8.3f}'.format(
