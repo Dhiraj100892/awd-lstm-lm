@@ -225,7 +225,7 @@ musical_prompts,results=create_generation_batch(model=model, num_words=gen_size,
                                                     params=params, TEXT=TEXT)
 
 # Create the output folder if it doesn't already exist
-out=PATHS["output"]/output_folder
+out=PATHS["output"]
 out.mkdir(parents=True, exist_ok=True)
 
 # For each generated sample, write mid, mp3, wav, and txt files to the output folder (as 1.mid, etc)
