@@ -3,21 +3,11 @@ import time
 import math
 import numpy as np
 import torch
-import torch.nn as nn
 
 import model
 
 from IPython import embed
-
-
-def repackage_hidden(h):
-    """Wraps hidden states in new Tensors,
-    to detach them from their history."""
-    if isinstance(h, torch.Tensor):
-        return h.detach()
-    else:
-        return tuple(repackage_hidden(v) for v in h)
-
+from utils import create_paths, repackage_hidden, dump_param_dict
 
 parser = argparse.ArgumentParser(description='PyTorch PennTreeBank RNN/LSTM Language Model')
 parser.add_argument('--data', type=str, default='data/penn/',
@@ -58,8 +48,7 @@ parser.add_argument('--cuda', action='store_false',
                     help='use CUDA')
 parser.add_argument('--log-interval', type=int, default=200, metavar='N',
                     help='report interval')
-randomhash = ''.join(str(time.time()).split('.'))
-parser.add_argument('--save', type=str,  default=randomhash+'.pt',
+parser.add_argument('--save', type=str,  default='model/model.pt',
                     help='path to save the final model')
 parser.add_argument('--alpha', type=float, default=2,
                     help='alpha L2 regularization on RNN activation (alpha = 0 means no regularization)')
@@ -88,7 +77,7 @@ if torch.cuda.is_available():
 ###############################################################################
 # Load data
 ###############################################################################
-
+PATHS = create_paths()
 
 def model_save(fn):
     with open(fn, 'wb') as f:
@@ -103,13 +92,16 @@ def model_load(fn):
 
 print("loading data")
 from data_load import data_loader
-dl = data_loader(bs=args.batch_size, bptt=args.bptt)
+dl, TEXT = data_loader(PATHS, bs=args.batch_size, bptt=args.bptt)
 eval_batch_size = 10
 test_batch_size = 1
 train_data = dl.trn_dl
 val_data = dl.val_dl
 test_data = dl.test_dl
+ntokens = dl.nt
 
+# dump param dict
+dump_param_dict(PATHS, TEXT, ntokens, args.batch_size, args.bptt, args.emsize, args.nhid, args.nlayers)
 ###############################################################################
 # Build the model
 ###############################################################################
@@ -117,7 +109,6 @@ test_data = dl.test_dl
 from splitcross import SplitCrossEntropyLoss
 criterion = None
 
-ntokens = dl.nt
 model = model.RNNModel(args.model, ntokens, args.emsize, args.nhid, args.nlayers, args.dropout, args.dropouth, args.dropouti, args.dropoute, args.wdrop, args.tied)
 ###
 if args.resume:

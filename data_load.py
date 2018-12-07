@@ -153,20 +153,11 @@ class LanguageData:
 
 # stuff from musicNet project ##############################################
 
-def create_paths():
-    PATHS={}
-    PATHS['data']=Path('./data/')
-
-    for k in PATHS.keys():
-        PATHS[k].mkdir(parents=True, exist_ok=True)
-
-    return PATHS
-
 # Unlike language models (which need a tokenizer to recognize don't as similar to 'do not',
 # here I have specific encodings for the music, and we can tokenize directly just by splitting by space.
 def music_tokenizer(x): return x.split(" ")
 
-def data_loader( test="test", train="train", bs=32, bptt=200, min_freq=1):
+def data_loader( PATHS, test="test", train="train", bs=32, bptt=200, min_freq=1):
     """ Loads test/train data, creates a model, trains, and saves it
     Input:
         model_to_load - if continuing training on previously saved model
@@ -186,7 +177,6 @@ def data_loader( test="test", train="train", bs=32, bptt=200, min_freq=1):
 
     """
 
-    PATHS=create_paths()
 
     # Check test and train folders have files
     train_files=os.listdir(PATHS["data"]/train)
@@ -205,7 +195,7 @@ def data_loader( test="test", train="train", bs=32, bptt=200, min_freq=1):
 
     # Build  Language Model Dataset from the training and validation set
     data_loader = LanguageData.from_text_files(PATHS["data"], TEXT, **FILES, bs=bs, bptt=bptt, min_freq=min_freq)
-    return data_loader
+    return data_loader, TEXT
 
 
 if __name__ == "__main__":
