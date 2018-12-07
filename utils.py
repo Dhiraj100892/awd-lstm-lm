@@ -44,8 +44,8 @@ def dump_param_dict(PATHS, TEXT, nt, bs, bptt, em_sz, nh, nl):
     d["nh"]=nh
     d["nl"]=nl
 
-    pickle.dump(d, open(f'{PATHS["model"]}/params.pkl','wb'))
-    pickle.dump(TEXT, open(f'{PATHS["model"]}/text.pkl','wb'))
+    pickle.dump(d, open(f'{PATHS["models"]}/params.pkl','wb'))
+    pickle.dump(TEXT, open(f'{PATHS["models"]}/text.pkl','wb'))
 
 
 #TODO: DONE!

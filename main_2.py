@@ -16,7 +16,7 @@ parser.add_argument('--model', type=str, default='LSTM',
                     help='type of recurrent net (LSTM, QRNN, GRU)')
 parser.add_argument('--emsize', type=int, default=400,
                     help='size of word embeddings')
-parser.add_argument('--nhid', type=int, default=600,
+parser.add_argument('--nhid', type=int, default=400,
                     help='number of hidden units per layer')
 parser.add_argument('--nlayers', type=int, default=4,
                     help='number of layers')
@@ -48,7 +48,7 @@ parser.add_argument('--cuda', action='store_false',
                     help='use CUDA')
 parser.add_argument('--log-interval', type=int, default=200, metavar='N',
                     help='report interval')
-parser.add_argument('--save', type=str,  default='model/model.pt',
+parser.add_argument('--save', type=str,  default='models/model.pt',
                     help='path to save the final model')
 parser.add_argument('--alpha', type=float, default=2,
                     help='alpha L2 regularization on RNN activation (alpha = 0 means no regularization)')

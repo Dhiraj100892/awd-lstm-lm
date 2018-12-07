@@ -20,7 +20,7 @@ parser.add_argument('--model', type=str, default='LSTM',
                     help='type of recurrent net (LSTM, QRNN, GRU)')
 parser.add_argument('--emsize', type=int, default=400,
                     help='size of word embeddings')
-parser.add_argument('--nhid', type=int, default=600,
+parser.add_argument('--nhid', type=int, default=400,
                     help='number of hidden units per layer')
 parser.add_argument('--nlayers', type=int, default=4,
                     help='number of layers')
@@ -60,7 +60,7 @@ parser.add_argument('--beta', type=float, default=1,
                     help='beta slowness regularization applied on RNN activiation (beta = 0 means no regularization)')
 parser.add_argument('--wdecay', type=float, default=1.2e-6,
                     help='weight decay applied to all weights')
-parser.add_argument('--resume', type=str,  default='',
+parser.add_argument('--resume', type=str,  default='./models/model.pt',
                     help='path of model to resume')
 parser.add_argument('--optimizer', type=str,  default='sgd',
                     help='optimizer to use (sgd, adam)')
@@ -162,10 +162,11 @@ def create_generation_batch(model, num_words, random_choice_frequency,
     print("Prompting network")
     # Feed the prompt one by one into the model (b is a vector of all the indices for each prompt at a given timestep)
     for b in t:
-        res, hidden = model(b.unsqueeze(0), hidden)
+        res, hidden = model(b.unsqueeze(0).cuda(), hidden)
 
     print("Generating new sample")
     for i in range(num_words):
+        res = model.decoder(res)
         # res holds the probabilities the model predicted given the input sequence
         # n_tok is the number of tokens (ie the vocab size)
         [ps, n] =res.topk(params["n_tok"])
@@ -176,6 +177,7 @@ def create_generation_batch(model, num_words, random_choice_frequency,
         # Cycle through the batch, randomly assign some of them to choose from the top trunc guesses, rather than to
         # automatically take the top choice
         for j in range(bs):
+            """
             if random.random()<random_choice_frequency:
                 # Truncate to top trunc_size guesses only
                 ps=ps[:,:trunc_size]
@@ -186,13 +188,13 @@ def create_generation_batch(model, num_words, random_choice_frequency,
                 ind=to_np(r[0])[0]
                 if ind!=0:
                     w[j].data[0]=n[j,ind].data[0]
-
+            """
             # Translate the index back to a word (itos is index to string)
             # Append to the ongoing sample
-            results[j]+=TEXT.vocab.itos[w[j].data[0]]+" "
+            results[j]+=TEXT.vocab.itos[w[j].item()]+" "
 
         # Feed all the predicted words from this timestep into the model, in order to get predictions for the next step
-        res, hidden = model(w.unsqueeze(0), hidden)
+        res, hidden = model(w.unsqueeze(0).cuda(), hidden)
     return musical_prompts,results
 
 
@@ -201,7 +203,7 @@ def create_generation_batch(model, num_words, random_choice_frequency,
 sample_freq = 12
 note_offset=33
 chordwise = False
-generator_bs = 16
+generator_bs = 8
 gen_size = 2000
 bptt = 200
 random_freq = 0.5
