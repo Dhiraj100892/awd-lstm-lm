@@ -148,54 +148,55 @@ def create_generation_batch(model, num_words, random_choice_frequency,
     This is very loosely based on an example in the FastAI notebooks, but is modified to include randomized prompts,
     to generate a batch at a time rather than a single example, and to include truncated random sampling.
     """
-    hidden = model.init_hidden(bs)
+    with torch.no_grad():
+        hidden = model.init_hidden(bs)
 
-    musical_prompts=generate_musical_prompts(prompts, bptt, bs)
+        musical_prompts=generate_musical_prompts(prompts, bptt, bs)
 
-    results=['']*bs
-    model.eval()
+        results=['']*bs
+        model.eval()
 
-    # Tokenize prompts and translate them to indices for input into model
-    s = [music_tokenizer(prompt)[:bptt] for prompt in musical_prompts]
-    t=TEXT.numericalize(s)
+        # Tokenize prompts and translate them to indices for input into model
+        s = [music_tokenizer(prompt)[:bptt] for prompt in musical_prompts]
+        t=TEXT.numericalize(s)
 
-    print("Prompting network")
-    # Feed the prompt one by one into the model (b is a vector of all the indices for each prompt at a given timestep)
-    for b in t:
-        res, hidden = model(b.unsqueeze(0).cuda(), hidden)
+        print("Prompting network")
+        # Feed the prompt one by one into the model (b is a vector of all the indices for each prompt at a given timestep)
+        for b in t:
+            res, hidden = model(b.unsqueeze(0).cuda(), hidden)
 
-    print("Generating new sample")
-    for i in range(num_words):
-        res = model.decoder(res)
-        # res holds the probabilities the model predicted given the input sequence
-        # n_tok is the number of tokens (ie the vocab size)
-        [ps, n] =res.topk(params["n_tok"])
+        print("Generating new sample")
+        for i in range(num_words):
+            res = model.decoder(res)
+            # res holds the probabilities the model predicted given the input sequence
+            # n_tok is the number of tokens (ie the vocab size)
+            [ps, n] =res.topk(params["n_tok"])
 
-        # By default, choose the most likely word (choice 0) for the next timestep (for all the samples in the batch)
-        w=n[:,0]
+            # By default, choose the most likely word (choice 0) for the next timestep (for all the samples in the batch)
+            w=n[:,0]
 
-        # Cycle through the batch, randomly assign some of them to choose from the top trunc guesses, rather than to
-        # automatically take the top choice
-        for j in range(bs):
-            """
-            if random.random()<random_choice_frequency:
-                # Truncate to top trunc_size guesses only
-                ps=ps[:,:trunc_size]
-                # Sample based on the probability the model predicted for those top choices
-                r=torch.multinomial(ps[j].exp(), 1)
-                # Translate this to an index
-                #TODO: need to figure it out
-                ind=to_np(r[0])[0]
-                if ind!=0:
-                    w[j].data[0]=n[j,ind].data[0]
-            """
-            # Translate the index back to a word (itos is index to string)
-            # Append to the ongoing sample
-            results[j]+=TEXT.vocab.itos[w[j].item()]+" "
+            # Cycle through the batch, randomly assign some of them to choose from the top trunc guesses, rather than to
+            # automatically take the top choice
+            for j in range(bs):
+                """
+                if random.random()<random_choice_frequency:
+                    # Truncate to top trunc_size guesses only
+                    ps=ps[:,:trunc_size]
+                    # Sample based on the probability the model predicted for those top choices
+                    r=torch.multinomial(ps[j].exp(), 1)
+                    # Translate this to an index
+                    #TODO: need to figure it out
+                    ind=to_np(r[0])[0]
+                    if ind!=0:
+                        w[j].data[0]=n[j,ind].data[0]
+                """
+                # Translate the index back to a word (itos is index to string)
+                # Append to the ongoing sample
+                results[j]+=TEXT.vocab.itos[w[j].item()]+" "
 
-        # Feed all the predicted words from this timestep into the model, in order to get predictions for the next step
-        res, hidden = model(w.unsqueeze(0).cuda(), hidden)
-    return musical_prompts,results
+            # Feed all the predicted words from this timestep into the model, in order to get predictions for the next step
+            res, hidden = model(w.unsqueeze(0).cuda(), hidden)
+        return musical_prompts,results
 
 
 ## main code
