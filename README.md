@@ -1,5 +1,12 @@
 # LSTM and QRNN Language Model Toolkit
 
+## Dhiraj Modification
+    - Requirements (Its better if you can create virtual env):
+      - Python-3.6, PyTorch4.0, 
+      - music21 (pip3 install music21)
+      - sudo apt install to get fluidsynth, mpg321, and twolame
+      - to train run main_2.py
+      - to generate music run generate.py 
 This repository contains the code used for two [Salesforce Research](https://einstein.ai/) papers:
 + [Regularizing and Optimizing LSTM Language Models](https://arxiv.org/abs/1708.02182)
 + [An Analysis of Neural Language Modeling at Multiple Scales](https://arxiv.org/abs/1803.08240)
